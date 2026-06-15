@@ -54,6 +54,34 @@
   <div class="content-box" id="contentBox"></div>
 </div>
 
+<!-- Binder modal (open book) -->
+<div class="binder-modal" id="binderModal" onclick="if(event.target===this)closeBinder()">
+  <div class="open-book" id="openBook">
+
+    <div class="book-left" id="bookLeft">
+      <div class="book-left-lines"></div>
+      <span class="book-left-icon" id="bookLeftIcon"></span>
+      <div class="book-left-title" id="bookLeftTitle"></div>
+      <div class="book-left-desc"  id="bookLeftDesc"></div>
+      <div class="book-left-count" id="bookLeftCount"></div>
+    </div>
+
+    <div class="book-spine-center"></div>
+
+    <div class="book-right" id="bookRight">
+      <div class="book-right-header">
+        <input type="text" class="book-search" id="bookSearch"
+               placeholder="Hledat materiál…" oninput="onSearchInput(this.value)">
+        <div class="book-filters" id="bookFilters"></div>
+      </div>
+      <div class="book-file-list"  id="bookFileList"></div>
+      <div class="book-pagination" id="bookPagination"></div>
+    </div>
+
+    <button class="book-close-btn" onclick="closeBinder()">✕</button>
+  </div>
+</div>
+
 <script src="script.js"></script>
 </body>
 </html>
