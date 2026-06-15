@@ -1003,3 +1003,234 @@ body.s2 .m-card { border-radius: 6px; }
   .gs-drop { width: calc(100vw - 20px); left: 0; transform: translateY(0); }
   .gs-drop.visible { transform: translateY(0); }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   PDF EDITOR MODAL
+   ══════════════════════════════════════════════════════════════════════ */
+
+#pdfEditorModal {
+  position: fixed; inset: 0; z-index: 3000;
+  background: rgba(14, 20, 30, .88);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+#pdfEditorModal.is-open { display: flex; }
+
+.pdf-editor-wrap {
+  position: relative;
+  display: flex; flex-direction: column;
+  width: 100%; height: 100%;
+  overflow: hidden;
+}
+
+/* ── TOOLBAR ── */
+.pdf-editor-toolbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px;
+  background: #1c2333;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.pdf-editor-title {
+  font-size: .82rem; font-weight: 700;
+  color: rgba(255,255,255,.55);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.pdf-tool-group {
+  display: flex; gap: 3px;
+}
+
+.pdf-tool-btn {
+  width: 34px; height: 34px;
+  border-radius: 6px; border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.07);
+  color: rgba(255,255,255,.78);
+  cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s, border-color .15s;
+  user-select: none;
+}
+
+.pdf-tool-btn:hover  { background: rgba(255,255,255,.16); color: #fff; }
+.pdf-tool-btn.active {
+  background: #3b82f6; border-color: #3b82f6; color: #fff;
+}
+
+/* Font bar */
+.pdf-font-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 6px;
+  border-left: 1px solid rgba(255,255,255,.1);
+  border-right: 1px solid rgba(255,255,255,.1);
+}
+
+.pdf-font-bar select,
+.pdf-font-bar input[type="number"] {
+  height: 32px; border-radius: 5px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.1);
+  color: #fff; font-size: .8rem; padding: 0 6px;
+}
+
+.pdf-font-bar input[type="color"] {
+  width: 32px; height: 32px; padding: 2px;
+  border-radius: 5px; border: 1px solid rgba(255,255,255,.2);
+  background: transparent; cursor: pointer;
+}
+
+/* Actions */
+.pdf-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+
+.pdf-save-btn {
+  height: 34px; padding: 0 14px;
+  border-radius: 7px; border: none;
+  background: #2563eb; color: #fff;
+  font-size: .82rem; font-weight: 700;
+  cursor: pointer; transition: background .15s, transform .1s;
+  white-space: nowrap;
+}
+.pdf-save-btn:hover    { background: #1d4ed8; }
+.pdf-save-btn:active   { transform: scale(.97); }
+.pdf-save-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.pdf-close-btn {
+  width: 34px; height: 34px;
+  border-radius: 7px; border: none;
+  background: rgba(239,68,68,.18);
+  color: #f87171; font-size: 16px;
+  cursor: pointer; transition: background .15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.pdf-close-btn:hover { background: rgba(239,68,68,.38); color: #fff; }
+
+/* ── PAGES AREA ── */
+.pdf-editor-pages {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  background: #111827;
+  padding: 28px 0 48px;
+  display: flex; flex-direction: column; align-items: center; gap: 28px;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.2) transparent;
+}
+
+/* ── LOADING ── */
+.pdf-loading {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px;
+  background: rgba(17,24,39,.85);
+  color: rgba(255,255,255,.6); font-size: .9rem;
+  pointer-events: none;
+}
+
+.pdf-spinner {
+  width: 38px; height: 38px;
+  border: 3px solid rgba(255,255,255,.12);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: pdfSpin .8s linear infinite;
+}
+@keyframes pdfSpin { to { transform: rotate(360deg); } }
+
+/* ── PAGE CONTAINER ── */
+.pdf-page-container {
+  position: relative;
+  box-shadow: 0 8px 40px rgba(0,0,0,.6);
+  border-radius: 2px;
+  user-select: none;
+}
+
+.pdf-page-canvas {
+  display: block;
+}
+
+.pdf-page-overlay {
+  position: absolute; top: 0; left: 0;
+  z-index: 2;
+}
+
+.pdf-page-label {
+  position: absolute; bottom: -22px; right: 0;
+  font-size: .68rem; color: rgba(255,255,255,.32);
+  pointer-events: none; user-select: none;
+}
+
+/* ── OVERLAY ELEMENTS (draggable objects) ── */
+.pdf-overlay-el {
+  position: absolute;
+  cursor: move;
+  outline: none;
+}
+
+.pdf-overlay-el:hover { outline: 1.5px dashed rgba(59,130,246,.5); }
+
+.pdf-el-selected {
+  outline: 2px solid #3b82f6 !important;
+}
+
+/* Delete button (appears on hover / select) */
+.pdf-el-delete {
+  position: absolute; top: -10px; right: -10px;
+  width: 20px; height: 20px; border-radius: 50%;
+  border: none; background: #ef4444; color: #fff;
+  font-size: 13px; line-height: 1; cursor: pointer;
+  display: none; align-items: center; justify-content: center;
+  z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,.4);
+}
+.pdf-overlay-el:hover .pdf-el-delete,
+.pdf-el-selected .pdf-el-delete { display: flex; }
+
+/* ── TEXT ELEMENT ── */
+.pdf-text-el {
+  min-width: 30px; min-height: 1em;
+  display: flex; flex-direction: column;
+  background: transparent;
+}
+
+.pdf-el-handle {
+  height: 14px;
+  background: rgba(59,130,246,.75);
+  border-radius: 3px 3px 0 0;
+  cursor: grab; display: flex; align-items: center;
+  justify-content: center;
+  color: #fff; font-size: 10px; letter-spacing: 2px;
+  user-select: none; flex-shrink: 0;
+}
+.pdf-el-handle:active { cursor: grabbing; }
+
+.pdf-text-content {
+  outline: none;
+  min-width: 40px; min-height: 1em;
+  padding: 2px 4px;
+  white-space: pre-wrap; word-break: break-word;
+  background: rgba(255,255,200,.08);
+  caret-color: currentColor;
+}
+.pdf-text-content:focus { background: rgba(255,255,200,.15); }
+
+/* ── IMAGE ELEMENT ── */
+.pdf-image-el {
+  overflow: hidden;
+  border-radius: 1px;
+}
+
+/* ── CUT GUIDE RECTANGLE ── */
+.pdf-cut-guide {
+  position: absolute;
+  border: 2px dashed #3b82f6;
+  background: rgba(59,130,246,.08);
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .pdf-editor-title { display: none; }
+  .pdf-font-bar select { max-width: 90px; }
+}

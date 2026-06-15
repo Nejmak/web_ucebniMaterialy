@@ -772,7 +772,11 @@ function turnPage(newPage) {
 }
 
 function openFile(name) {
-  alert(`📂 Otevírám materiál:\n„${name}"\n\nZde by se zobrazil obsah souboru.`);
+  if (/\.pdf$/i.test(name)) {
+    PdfEditor.open(name);
+  } else {
+    alert(`📂 Otevírám materiál:\n„${name}"\n\nZde by se zobrazil obsah souboru.`);
+  }
 }
 
 function esc(str) {

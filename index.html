@@ -99,6 +99,68 @@
   </div>
 </div>
 
+<!-- PDF Editor Modal -->
+<div id="pdfEditorModal">
+  <div class="pdf-editor-wrap">
+
+    <!-- Toolbar -->
+    <div class="pdf-editor-toolbar">
+      <span class="pdf-editor-title" id="pdfEditorTitle">PDF Editor</span>
+
+      <div class="pdf-tool-group">
+        <button class="pdf-tool-btn" data-tool="select" title="Vybrat / Přesunout (S)"
+                onclick="PdfEditor.setTool('select')">&#9654;</button>
+        <button class="pdf-tool-btn" data-tool="cut"    title="Vyjmout oblast (C)"
+                onclick="PdfEditor.setTool('cut')">&#9988;</button>
+        <button class="pdf-tool-btn" data-tool="text"   title="Přidat text (T)"
+                onclick="PdfEditor.setTool('text')"><b>T</b></button>
+        <button class="pdf-tool-btn" data-tool="erase"  title="Vymazat oblast (E)"
+                onclick="PdfEditor.setTool('erase')">&#9633;</button>
+      </div>
+
+      <!-- Font bar (visible only in text mode) -->
+      <div id="pdfFontBar" class="pdf-font-bar" style="display:none">
+        <select id="pdfFontFamily" title="Font" onchange=""></select>
+        <input  id="pdfFontSize"   type="number" value="14" min="6" max="96"
+                title="Velikost" style="width:52px">
+        <input  id="pdfFontColor"  type="color"  value="#000000" title="Barva textu">
+        <button id="pdfBoldBtn"   class="pdf-tool-btn" title="Tučně"
+                onclick="PdfEditor.toggleBold()"><b>B</b></button>
+        <button id="pdfItalicBtn" class="pdf-tool-btn" title="Kurzíva"
+                onclick="PdfEditor.toggleItalic()"><i>I</i></button>
+      </div>
+
+      <div class="pdf-actions">
+        <button class="pdf-tool-btn" title="Načíst jiný soubor"
+                onclick="PdfEditor.loadFromFile()">&#128194;</button>
+        <button id="pdfSaveBtn" class="pdf-save-btn"
+                onclick="PdfEditor.download()">&#128190; Uložit PDF</button>
+        <button class="pdf-close-btn" onclick="PdfEditor.close()">&#10005;</button>
+      </div>
+    </div>
+
+    <!-- Loading overlay (outside of scrollable pages so innerHTML= doesn't remove it) -->
+    <div class="pdf-loading" id="pdfLoading" style="display:none">
+      <div class="pdf-spinner"></div>
+      <span>Načítám PDF…</span>
+    </div>
+
+    <!-- Pages -->
+    <div class="pdf-editor-pages" id="pdfEditorPages"></div>
+
+  </div>
+</div>
+
+<!-- pdf.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
+<!-- pdf-lib -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+
 <script src="script.js"></script>
+<script src="pdf-editor.js"></script>
 </body>
 </html>
