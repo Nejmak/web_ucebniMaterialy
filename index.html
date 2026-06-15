@@ -18,6 +18,23 @@
   <button class="sw-btn" data-s="2" onclick="switchStage(2)">2. stupeň</button>
 </div>
 
+<!-- Global search -->
+<div class="gs-wrap" id="gsWrap">
+  <div class="gs-field">
+    <svg class="gs-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+      <circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="17" y2="17"/>
+    </svg>
+    <input class="gs-input" id="gsInput" type="search"
+           placeholder="Hledat soubor…"
+           autocomplete="off" spellcheck="false"
+           oninput="onGlobalSearch(this.value)"
+           onfocus="onGlobalSearch(this.value)"
+           onblur="setTimeout(()=>document.getElementById('gsDrop').classList.remove('visible'),160)"
+           onkeydown="gsKey(event)">
+  </div>
+  <div class="gs-drop" id="gsDrop"></div>
+</div>
+
 <!-- Header -->
 <header>
   <div class="hdr-deco" id="hdrDeco"></div>

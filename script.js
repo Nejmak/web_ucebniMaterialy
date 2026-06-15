@@ -404,13 +404,53 @@ let writeTimer = null;
 // active cards for the binder
 let currentCards = [];
 
+// ─── GLOBAL SEARCH INDEX ─────────────────────────────────────────────
+let searchIndex = [];   // flat list of every file across all stages/tabs/cards
+let gsResults   = [];   // current autocomplete results
+
+function buildSearchIndex() {
+  searchIndex = [];
+  for (const s of [1, 2]) {
+    for (const tab of DATA[s].tabs) {
+      const cards = DATA[s].cards[tab.name] || [];
+      cards.forEach((card, ci) => {
+        (card.files || []).forEach((file, fi) => {
+          searchIndex.push({
+            name: file.name, icon: file.icon,
+            type: file.type, size: file.size,
+            stage: s,
+            tabName: tab.name, tabIcon: tab.icon,
+            ci, fi,
+            cardTitle: card.title, cardColor: card.c,
+          });
+        });
+      });
+    }
+  }
+}
+
 // ─── INIT ────────────────────────────────────────────────────────────
 function init() {
+  buildSearchIndex();
   renderBg();
   renderTabs(stage);
   renderContent(stage, DATA[stage].tabs[0].name);
   setTimeout(writeHeslo, 600);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeBinder(); });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeBinder();
+      document.getElementById('gsInput').value = '';
+      document.getElementById('gsDrop').classList.remove('visible');
+    }
+  });
+
+  // close dropdown when clicking outside the search wrapper
+  document.addEventListener('click', e => {
+    if (!document.getElementById('gsWrap').contains(e.target)) {
+      document.getElementById('gsDrop').classList.remove('visible');
+    }
+  });
 }
 
 // ─── STAGE SWITCH ────────────────────────────────────────────────────
@@ -694,30 +734,32 @@ function turnPage(newPage) {
   const total = Math.ceil(binder.filtered.length / FILES_PER_PAGE);
   if (newPage < 0 || newPage >= total || newPage === binder.page) return;
 
-  const fwd  = newPage > binder.page;
-  const DUR  = 520;   // total leaf animation (ms)
-  const MID  = 210;   // when to swap + start fading in new content (ms)
+  const fwd = newPage > binder.page;
+  const DUR = 520;
 
   const openBook = document.getElementById('openBook');
   const fileList = document.getElementById('bookFileList');
   const bookRect = openBook.getBoundingClientRect();
   const listRect = fileList.getBoundingClientRect();
 
-  // ── Leaf: covers exactly the file-list area ───────────────────────
+  // 1. Opaque leaf appears over the file list — hides everything beneath
   const leaf = document.createElement('div');
   leaf.className = `turn-leaf ${fwd ? 'fwd' : 'back'}`;
-  leaf.style.left   = `${listRect.left - bookRect.left}px`;
-  leaf.style.top    = `${listRect.top  - bookRect.top}px`;
-  leaf.style.width  = `${listRect.width}px`;
-  leaf.style.height = `${listRect.height}px`;
-  // start flat and fully opaque
+  leaf.style.left      = `${listRect.left - bookRect.left}px`;
+  leaf.style.top       = `${listRect.top  - bookRect.top}px`;
+  leaf.style.width     = `${listRect.width}px`;
+  leaf.style.height    = `${listRect.height}px`;
   leaf.style.transform = `perspective(1100px) rotateY(0deg)`;
   leaf.style.opacity   = '1';
   openBook.appendChild(leaf);
 
-  // double-RAF: let browser paint the initial state before transitioning
+  // 2. Swap content immediately while leaf is still opaque — zero flash
+  binder.page = newPage;
+  renderFileList();
+  renderPagination();
+
+  // 3. Animate leaf: rotate + dissolve → new content revealed beneath
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    // turn rotates past 75° while opacity kicks in after a small delay
     leaf.style.transition =
       `transform ${DUR}ms cubic-bezier(.38,0,.72,.62),` +
       `opacity   ${Math.round(DUR * .72)}ms ease-in ${Math.round(DUR * .12)}ms`;
@@ -725,28 +767,8 @@ function turnPage(newPage) {
     leaf.style.opacity   = '0';
   }));
 
-  // ── Mid-point: swap content, fade it up through the dissolving leaf ─
-  setTimeout(() => {
-    // instant hide → render new content → then fade in
-    fileList.style.transition = 'none';
-    fileList.style.opacity    = '0';
-
-    binder.page = newPage;
-    renderFileList();
-    renderPagination();
-
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      fileList.style.transition = `opacity ${DUR - MID}ms ease-out`;
-      fileList.style.opacity    = '1';
-    }));
-  }, MID);
-
-  // ── Cleanup ───────────────────────────────────────────────────────
-  setTimeout(() => {
-    leaf.remove();
-    fileList.style.transition = '';
-    fileList.style.opacity    = '';
-  }, DUR + 80);
+  // 4. Cleanup
+  setTimeout(() => leaf.remove(), DUR + 80);
 }
 
 function openFile(name) {
@@ -889,6 +911,106 @@ function autoErase() {
     hesloIdx  = (hesloIdx + 1) % DATA[stage].hesla.length;
     writeTimer = setTimeout(writeHeslo, 520);
   }, cleanAt);
+}
+
+// ─── GLOBAL SEARCH LOGIC ─────────────────────────────────────────────
+function onGlobalSearch(val) {
+  const q    = val.trim().toLowerCase();
+  const drop = document.getElementById('gsDrop');
+
+  if (q.length < 2) { drop.classList.remove('visible'); return; }
+
+  gsResults = searchIndex
+    .filter(r => r.name.toLowerCase().includes(q))
+    .slice(0, 9);
+
+  if (gsResults.length === 0) {
+    drop.innerHTML = `<div class="gs-empty">Žádné výsledky pro „${esc(val)}"</div>`;
+    drop.classList.add('visible');
+    return;
+  }
+
+  drop.innerHTML = gsResults.map((r, i) => `
+    <div class="gs-item" onmousedown="openFromSearch(${i})">
+      <span class="gs-file-icon">${r.icon}</span>
+      <div class="gs-info">
+        <div class="gs-name">${hlQuery(r.name, q)}</div>
+        <div class="gs-meta">${r.tabIcon} ${esc(r.tabName)} › ${esc(r.cardTitle)} &middot; ${r.stage}. stupeň</div>
+      </div>
+      <span class="gs-badge" style="background:${r.cardColor}">${r.type}</span>
+    </div>`
+  ).join('');
+
+  drop.classList.add('visible');
+}
+
+// Enter = open first result; Escape handled globally
+function gsKey(e) {
+  if (e.key === 'Enter' && gsResults.length > 0) openFromSearch(0);
+}
+
+function openFromSearch(idx) {
+  const r = gsResults[idx];
+  if (!r) return;
+
+  // clear search UI
+  document.getElementById('gsInput').value = '';
+  document.getElementById('gsDrop').classList.remove('visible');
+
+  const doOpen = () => {
+    switchToTab(r.tabName);
+    setTimeout(() => openBinderHighlight(r.ci, r.fi), 60);
+  };
+
+  if (r.stage !== stage) {
+    switchStage(r.stage);
+    setTimeout(doOpen, 360); // wait for stage-switch overlay
+  } else {
+    doOpen();
+  }
+}
+
+// Activate a tab by name and re-render its content
+function switchToTab(tabName) {
+  const idx = DATA[stage].tabs.findIndex(t => t.name === tabName);
+  if (idx === -1) return;
+  document.querySelectorAll('.s-tab')
+    .forEach((el, i) => el.classList.toggle('active', i === idx));
+  renderContent(stage, tabName);
+}
+
+// Open a binder then jump to the file's page and flash it
+function openBinderHighlight(cardIdx, fileIdx) {
+  openBinder(cardIdx);
+
+  setTimeout(() => {
+    // jump directly (no turn animation) to the page holding the file
+    const targetPage = Math.floor(fileIdx / FILES_PER_PAGE);
+    if (targetPage !== binder.page) {
+      binder.page = targetPage;
+      renderFileList();
+      renderPagination();
+    }
+
+    // flash the specific file row
+    const localIdx = fileIdx % FILES_PER_PAGE;
+    const items    = document.querySelectorAll('#bookFileList .book-file');
+    const target   = items[localIdx];
+    if (target) {
+      target.classList.add('hl');
+      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // třída zůstane — zmizí přirozeně při dalším renderFileList()
+    }
+  }, 580); // after book open animation
+}
+
+// Highlight query match inside a filename string (returns safe HTML)
+function hlQuery(text, query) {
+  const i = text.toLowerCase().indexOf(query);
+  if (i === -1) return esc(text);
+  return esc(text.slice(0, i)) +
+    `<mark>${esc(text.slice(i, i + query.length))}</mark>` +
+    esc(text.slice(i + query.length));
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────
